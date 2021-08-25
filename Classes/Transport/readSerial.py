@@ -13,13 +13,17 @@ from Classes.Transport.readDecoder import decode_and_split_message
 
 # Manage Serial Line
 def open_serial( self ):
+    Domoticz.Log("open_serial")
     if self._connection:
         self._connection.close()
         del self._connection
         self._connection = None
+    Domoticz.Log("open_serial : %s" %self._connection)
 
     try:
+        Domoticz.Log("open_serial : %s, calling Serial.Serial()" %self._connection)
         self._connection = serial.Serial(self._serialPort, baudrate = 115200, rtscts = False, dsrdtr = False, timeout = None)
+        Domoticz.Log("open_serial : %s, Serial.Serial() called" %self._connection)
         
     except serial.SerialException as e:
         self.logging_receive('Error',"Cannot open Zigate port %s error: %s" %(self._serialPort, e))

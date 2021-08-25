@@ -17,7 +17,7 @@ from Classes.Transport.readwriteTcp import open_tcpip, tcpip_read_from_zigate
 
 def open_zigate_and_start_reader( self, zigate_mode ):
 
-    self.logging_receive( 'Debug', "open_zigate_and_start_reader")
+    self.logging_receive( 'Log', "open_zigate_and_start_reader")
     if zigate_mode == 'serial':
         if open_serial( self ):
             start_serial_reader_thread( self )
