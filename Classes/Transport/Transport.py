@@ -305,7 +305,7 @@ def open_connection( self ):
     Domoticz.Log("open_connection: %s %s find: %s %s" %(self._transp, self._serialPort, self._serialPort.find('/dev/'),self._serialPort.find('COM')))
 
     if self._transp in ["USB", "DIN", "PI", "V2-USB", "V2-DIN", "V2-PI"]:
-        if self._serialPort.find('/dev/') == -1 and self._serialPort.find('COM') != -1:
+        if self._serialPort.find('/dev/') == -1 and self._serialPort.find('COM') == -1:
             Domoticz.Log("open_connection: %s no /dev, nor COM" %self._transp)
             return
         Domoticz.Status("Connection Name: Zigate, Transport: Serial, Address: %s" % (self._serialPort))
