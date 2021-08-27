@@ -306,7 +306,7 @@ def open_connection( self ):
 
     if self._transp in ["USB", "DIN", "PI", "V2-USB", "V2-DIN", "V2-PI"]:
         if self._serialPort.find('/dev/') == -1 and self._serialPort.find('COM') == -1:
-            Domoticz.Log("open_connection: %s no /dev, nor COM" %self._transp)
+            Domoticz.Error("Connection Name: Zigate, Transport: Serial, Address: %s" % (self._serialPort))
             return
         Domoticz.Status("Connection Name: Zigate, Transport: Serial, Address: %s" % (self._serialPort))
         if self.pluginconf.pluginConf['byPassDzConnection'] and not self.force_dz_communication:
