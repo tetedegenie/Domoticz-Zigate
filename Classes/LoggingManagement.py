@@ -81,7 +81,7 @@ class LoggingManagement:
             if "loggingBackupCount" in self.pluginconf.pluginConf:
                 _backupCount = int(self.pluginconf.pluginConf["loggingBackupCount"])
             if "loggingMaxMegaBytes" in self.pluginconf.pluginConf:
-                _maxBytes = int(self.pluginconf.pluginConf["loggingBackupCount"]) * 1024 * 1024
+                _maxBytes = int(self.pluginconf.pluginConf["loggingMaxMegaBytes"]) * 1024 * 1024
 
             if _maxBytes == 0:
                 # Enable TimedRotating
@@ -115,11 +115,11 @@ class LoggingManagement:
             #    self._newError  = True
 
         except json.decoder.JSONDecodeError as e:
-            self.loggingWriteErrorHistory()  # flush the file to avoid the error next startup
+            loggingWriteErrorHistory( self )  # flush the file to avoid the error next startup
             Domoticz.Error("load Json LogErrorHistory poorly-formed %s, not JSON: %s" % (jsonLogHistory, e))
 
         except Exception as e:
-            self.loggingWriteErrorHistory()  # flush the file to avoid the error next startup
+            loggingWriteErrorHistory( self )  # flush the file to avoid the error next startup
             Domoticz.Error("load Json LogErrorHistory Error %s, not JSON: %s" % (jsonLogHistory, e))
         handle.close()
 

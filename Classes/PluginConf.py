@@ -16,7 +16,7 @@ import os.path
 import json
 import time
 
-from Modules.tools import is_hex, setConfigItem, getConfigItem
+from Modules.tools import is_hex, setConfigItem, getConfigItem, is_domoticz_db_available
 
 
 SETTINGS = {
@@ -136,14 +136,6 @@ SETTINGS = {
         "param": {
             "Livolo": {"type": "bool", "default": 0, "current": None, "restart": 0, "hidden": False, "Advanced": False},
             "enableSchneiderWiser": {
-                "type": "bool",
-                "default": 0,
-                "current": None,
-                "restart": 0,
-                "hidden": False,
-                "Advanced": False,
-            },
-            "fullDeviceInterview": {
                 "type": "bool",
                 "default": 0,
                 "current": None,
@@ -751,14 +743,6 @@ SETTINGS = {
                 "hidden": False,
                 "Advanced": True,
             },
-            "capturePairingInfos": {
-                "type": "bool",
-                "default": 0,
-                "current": None,
-                "restart": 0,
-                "hidden": False,
-                "Advanced": True,
-            },
             "ZiGateReactTime": {
                 "type": "bool",
                 "default": 0,
@@ -1101,6 +1085,14 @@ SETTINGS = {
                 "current": None,
                 "restart": 0,
                 "hidden": True,
+                "Advanced": True,
+            },
+            "debugDanfoss": {
+                "type": "bool",
+                "default": 0,
+                "current": None,
+                "restart": 0,
+                "hidden": False,
                 "Advanced": True,
             },
         },
@@ -1635,12 +1627,15 @@ SETTINGS = {
 
 
 class PluginConf:
-    def __init__(self, homedir, hardwareid):
+    def __init__(self, VersionNewFashion, DomoticzMajor, DomoticzMinor, homedir, hardwareid):
 
         self.pluginConf = {}
         self.homedir = homedir
         self.hardwareid = hardwareid
         self.pluginConf["pluginHome"] = homedir
+        self.VersionNewFashion = VersionNewFashion
+        self.DomoticzMajor = DomoticzMajor
+        self.DomoticzMinor = DomoticzMinor
 
         setup_folder_parameters(self, homedir)
 
@@ -1681,7 +1676,7 @@ class PluginConf:
         with open(pluginConfFile, "wt") as handle:
             json.dump(write_pluginConf, handle, sort_keys=True, indent=2)
 
-        if self.pluginConf["useDomoticzDatabase"]:
+        if is_domoticz_db_available(self) and self.pluginConf["useDomoticzDatabase"]:
             setConfigItem(Key="PluginConf", Value={"TimeStamp": time.time(), "b64Settings": write_pluginConf})
 
 
@@ -1689,26 +1684,27 @@ def _load_Settings(self):
     # deserialize json format of pluginConf'
     # load parameters '
 
-    _domoticz_pluginConf = getConfigItem(Key="PluginConf")
     dz_timestamp = 0
-    if "TimeStamp" in _domoticz_pluginConf:
-        dz_timestamp = _domoticz_pluginConf["TimeStamp"]
-        _domoticz_pluginConf = _domoticz_pluginConf["b64Settings"]
-        Domoticz.Log(
-            "Plugin data loaded where saved on %s"
-            % (time.strftime("%A, %Y-%m-%d %H:%M:%S", time.localtime(dz_timestamp)))
-        )
+    if is_domoticz_db_available(self):
+        _domoticz_pluginConf = getConfigItem(Key="PluginConf")
+        if "TimeStamp" in _domoticz_pluginConf:
+            dz_timestamp = _domoticz_pluginConf["TimeStamp"]
+            _domoticz_pluginConf = _domoticz_pluginConf["b64Settings"]
+            Domoticz.Log(
+                "Plugin data loaded where saved on %s"
+                % (time.strftime("%A, %Y-%m-%d %H:%M:%S", time.localtime(dz_timestamp)))
+            )
+        if not isinstance(_domoticz_pluginConf, dict):
+            _domoticz_pluginConf = {}
 
     txt_timestamp = 0
     if os.path.isfile(self.pluginConf["filename"]):
         txt_timestamp = os.path.getmtime(self.pluginConf["filename"])
     Domoticz.Log("%s timestamp is %s" % (self.pluginConf["filename"], txt_timestamp))
+
     if dz_timestamp < txt_timestamp:
         Domoticz.Log("Dz PluginConf is older than Json Dz: %s Json: %s" % (dz_timestamp, txt_timestamp))
         # We should load the json file
-
-    if not isinstance(_domoticz_pluginConf, dict):
-        _domoticz_pluginConf = {}
 
     with open(self.pluginConf["filename"], "rt") as handle:
         _pluginConf = {}
@@ -1723,16 +1719,17 @@ def _load_Settings(self):
             self.pluginConf[param] = _pluginConf[param]
 
     # Check Load
-    Domoticz.Log("PluginConf Loaded from Dz: %s from Json: %s" % (len(_domoticz_pluginConf), len(_pluginConf)))
-    if _domoticz_pluginConf:
-        for x in _pluginConf:
-            if x not in _domoticz_pluginConf:
-                Domoticz.Error("-- %s is missing in Dz" % x)
-            else:
-                if _pluginConf[x] != _domoticz_pluginConf[x]:
-                    Domoticz.Error(
-                        "++ %s is different in Dz: %s from Json: %s" % (x, _domoticz_pluginConf[x], _pluginConf[x])
-                    )
+    if is_domoticz_db_available(self) and self.pluginConf["useDomoticzDatabase"]:
+        Domoticz.Log("PluginConf Loaded from Dz: %s from Json: %s" % (len(_domoticz_pluginConf), len(_pluginConf)))
+        if _domoticz_pluginConf:
+            for x in _pluginConf:
+                if x not in _domoticz_pluginConf:
+                    Domoticz.Error("-- %s is missing in Dz" % x)
+                else:
+                    if _pluginConf[x] != _domoticz_pluginConf[x]:
+                        Domoticz.Error(
+                            "++ %s is different in Dz: %s from Json: %s" % (x, _domoticz_pluginConf[x], _pluginConf[x])
+                        )
 
 
 def _load_oldfashon(self, homedir, hardwareid):

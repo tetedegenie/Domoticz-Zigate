@@ -1634,6 +1634,12 @@ THERMOSTAT_LEVEL_2_MODE = {
     50: "Fan Only",
 }
 
+THERMOSTAT_LEVEL_3_MODE = {
+    0: "Off", # Off
+    10: "Auto", # Confort
+    20: "Heat", # Eco
+}
+
 THERMOSTAT_MODE_2_LEVEL = {
     0x00: "00",  # Off
     0x01: "10",  # Auto
@@ -1646,6 +1652,11 @@ THERMOSTAT_MODE_2_LEVEL = {
     0x09: "00",  # Sleep
 }
 
+THERMOSTAT_MODE_3_LEVEL = {
+    0x00: "00", # Off
+    0x01: "10", # Confort ?
+    0x03: "20", # No-Freeze
+}
 
 # Ordered List - Important for binding
 CLUSTERS_LIST = [
@@ -1671,11 +1682,13 @@ CLUSTERS_LIST = [
     "0204",  # Thermostat UI
     "0300",  # Colour Control
     "0000",  # Basic
+    "0b01",  #
     "0b04",  # Electrical Measurement
     "ff02",  # Used by Xiaomi devices for battery informations.
     "fc01",  # Legrand
     "fc21",  # Cluster Profalux PFX
     "ef00",  # Tuya TRV
+    "ff66", # Private Cluster for ZLinky_TIC
 ]
 
 LEGRAND_REMOTES = ("Remote switch", "Double gangs remote switch", "Shutters central remote switch")

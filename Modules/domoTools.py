@@ -86,11 +86,23 @@ def RetreiveSignalLvlBattery(self, NwkID):
 
     DomoticzRSSI = 12  # Unknown
 
-    if isinstance(SignalLevel, int):
-        # rssi = round((SignalLevel * 11) / 255)
-        SEUIL1 = 20
+    # La ZiGate+ USB n'a pas d'amplificateur contrairement à la V1. 
+    # Le LQI max de la ZiGate+ (V2) est de 170. Cependant, 
+    # la ZiGate+ est moins sensible aux perturbations.
+    # D'après les tests, la portée entre la v1 et la v2 est sensiblement identique même si le LQI n'est pas gérer de la même manière.
+    # La ZiGate v1 par exemple a des pertes de paquets à partir de 50-60 en LQI alors que sur la v2 elle commence à perdre des paquets à 25 LQI.
+    if self.ZiGateModel and self.ZiGateModel == 2:
+        SEUIL1 = 15
+        SEUIL2 = 35
+        SEUIL3 = 120
+    else:
+        SEUIL1 = 30
         SEUIL2 = 75
         SEUIL3 = 180
+
+    if isinstance(SignalLevel, int):
+        # rssi = round((SignalLevel * 11) / 255)
+
         DomoticzRSSI = 0
         if SignalLevel >= SEUIL3:
             #  SEUIL3 < ZiGate LQI < 255 -> 11
@@ -241,7 +253,7 @@ def resetMotion(self, Devices, NwkId, WidgetType, unit, SignalLevel, BatteryLvl,
         Devices[unit].Update(nValue=0, sValue="Off")
         self.log.logging(
             "Widget",
-            "Log",
+            "Debug",
             "Last update of the devices %s %s was %s ago" % (unit, WidgetType, (now - lastupdate)),
             NwkId,
         )
@@ -440,8 +452,13 @@ def timedOutDevice(self, Devices, Unit=None, NwkId=None, MarkTimedOut=True):
 
 
 def timeout_widget(self, Devices, unit, timeout_value):
+
+    if is_meter_widget( self, Devices, unit):
+        return
+        
     _nValue = Devices[unit].nValue
     _sValue = Devices[unit].sValue
+    self.log.logging("Widget", "Log", "timeout_widget unit %s -> %s from %s:%s" % (Devices[unit].Name, bool(timeout_value), _nValue, _sValue))
     if Devices[unit].TimedOut != timeout_value:
         # Update is required
         if (
@@ -483,7 +500,7 @@ def lastSeenUpdate(self, Devices, Unit=None, NwkId=None):
         if Devices[Unit].TimedOut:
             timedOutDevice(self, Devices, Unit=Unit, MarkTimedOut=0)
         else:
-            Devices[Unit].Touch()
+            device_touch( self, Devices, Unit)
         if NwkId is None and "IEEE" in self.IEEE2NWK:
             NwkId = self.IEEE2NWK[IEEE]
 
@@ -527,8 +544,28 @@ def lastSeenUpdate(self, Devices, Unit=None, NwkId=None):
                 if Devices[x].TimedOut:
                     timedOutDevice(self, Devices, Unit=x, MarkTimedOut=0)
                 else:
-                    Devices[x].Touch()
+                    device_touch( self, Devices, x)
 
+
+def is_meter_widget( self, Devices, unit):
+    _Type = Devices[unit].Type 
+    _Switchtype = Devices[unit].SwitchType
+    _Subtype = Devices[unit].SubType
+
+    if _Switchtype == 0 and _Subtype == 29 and _Type == 243:
+        return True
+    return False
+    
+def device_touch( self, Devices, unit):
+
+    # In case of Meter Device ( kWh ), we must not touch it, otherwise it will destroy the metering
+    # Type, Subtype, SwitchType 
+    # 243|29|0
+
+    if is_meter_widget( self, Devices, unit):
+        return
+
+    Devices[unit].Touch()
 
 def GetType(self, Addr, Ep):
     Type = ""
@@ -739,6 +776,9 @@ def TypeFromCluster(self, cluster, create_=False, ProfileID_="", ZDeviceID_="", 
 
     elif cluster == "fc40":  # FIP Legrand
         TypeFromCluster = "ThermoMode"
+
+    elif cluster == "ff66":
+        TypeFromCluster = "DEMAIN"
 
     return TypeFromCluster
 

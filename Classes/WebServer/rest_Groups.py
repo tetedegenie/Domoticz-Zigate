@@ -5,13 +5,13 @@
 #
 
 
-import Domoticz
 import json
-
-
-from Classes.WebServer.headerResponse import setupHeadersResponse, prepResponseMessage
 import os
 from time import time
+
+import Domoticz
+from Classes.WebServer.headerResponse import (prepResponseMessage,
+                                              setupHeadersResponse)
 
 
 def rest_zGroup_lst_avlble_dev(self, verb, data, parameters):
@@ -302,7 +302,8 @@ def rest_zGroup(self, verb, data, parameters):
                     _dev = {}
                     _dev["_NwkId"] = ListOfGroups[itemGroup]["Tradfri Remote"]["Device Addr"]
                     _dev["Ep"] = "01"
-                    zgroup["Devices"].append(_dev)
+                    # zgroup["Devices"].append(_dev)  This looks very bad. Don't know where it is coming from 
+                    zgroup["Devices"][ ListOfGroups[itemGroup]["Tradfri Remote"]["Device Addr"] ] = "01"
                 _response["Data"] = json.dumps(zgroup, sort_keys=True)
 
         return _response

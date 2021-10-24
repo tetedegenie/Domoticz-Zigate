@@ -503,6 +503,18 @@ def updLQI(self, key, LQI):
 
 
 #### Those functions will be use with the new DeviceConf structutre
+
+def is_fake_ep( self, nwkid, ep):
+    
+    if ( "Model" in self.ListOfDevices[nwkid]
+            and self.ListOfDevices[nwkid]["Model"] in self.DeviceConf
+            and "FakeEp" in self.DeviceConf[ self.ListOfDevices[nwkid]["Model"] ]
+            and ep in self.DeviceConf[ self.ListOfDevices[nwkid]["Model"] ]["FakeEp"]
+    ):
+        return True
+    return False
+
+
 def getTypebyCluster(self, Cluster):
     clustersType = {
         "0405": "Humi",
@@ -566,7 +578,7 @@ def getListofTypebyModel(self, Model):
     if Model in self.DeviceConf:
         for ep in list(self.DeviceConf[Model]["Epin"].keys()):
             if "Type" in self.DeviceConf[Model]["Epin"][ep]:
-                EpinType = (ep, getListofType(self.DeviceConf[Model]["Epin"][ep]["Type"]))
+                EpinType = (ep, getListofType(self, self.DeviceConf[Model]["Epin"][ep]["Type"]))
                 EpType.append(EpinType)
     return EpType
 
@@ -768,29 +780,36 @@ def mainPoweredDevice(self, nwkid):
     if nwkid not in self.ListOfDevices:
         Domoticz.Log("mainPoweredDevice - Unknown Device: %s" % nwkid)
         return False
+    
+    model_name = ""
+    if "Model" in self.ListOfDevices[nwkid]:
+        model_name = self.ListOfDevices[nwkid]["Model"]
 
     mainPower = False
     if "MacCapa" in self.ListOfDevices[nwkid] and self.ListOfDevices[nwkid]["MacCapa"] != {}:
         mainPower = ("8e" == self.ListOfDevices[nwkid]["MacCapa"]) or ("84" == self.ListOfDevices[nwkid]["MacCapa"])
+
+    # These are Model annouced as Main Power and are not
+    if model_name in (
+        "lumi.remote.b686opcn01",
+        "lumi.remote.b486opcn01",
+        "lumi.remote.b286opcn01",
+        "lumi.remote.b686opcn01-bulb",
+        "lumi.remote.b486opcn01-bulb",
+        "lumi.remote.b286opcn01-bulb",
+    ):
+        mainPower = False
+
+    # These are device annouced as Battery, but are Main Powered ( some time without neutral)
+    if model_name in ("TI0001", "TS0011", "TS0601-switch", "TS0601-2Gangs-switch"):
+        mainPower = True
+
 
     if not mainPower and "PowerSource" in self.ListOfDevices[nwkid] and self.ListOfDevices[nwkid]["PowerSource"] != {}:
         mainPower = "Main" == self.ListOfDevices[nwkid]["PowerSource"]
 
     # We need to take in consideration that Livolo is reporting a MacCapa of 0x80
     # That Aqara Opple are reporting MacCap 0x84 while they are Battery devices
-    if "Model" in self.ListOfDevices[nwkid]:
-        if self.ListOfDevices[nwkid]["Model"] in (
-            "lumi.remote.b686opcn01",
-            "lumi.remote.b486opcn01",
-            "lumi.remote.b286opcn01",
-            "lumi.remote.b686opcn01-bulb",
-            "lumi.remote.b486opcn01-bulb",
-            "lumi.remote.b286opcn01-bulb",
-        ):
-            mainPower = False
-
-        if self.ListOfDevices[nwkid]["Model"] in ("TI0001", "TS0011", "TS0601-switch", "TS0601-2Gangs-switch"):
-            mainPower = True
 
     return mainPower
 
@@ -1318,3 +1337,27 @@ def repair_dict_after_load(b64_dict, Attribute):
 
         b64_dict[Attribute] = eval(b64decode(b64_dict[Attribute]))
     return b64_dict
+
+
+def is_domoticz_db_available(self):
+    #  Domoticz 2021.1 build 13495
+
+    Domoticz.Log(
+        "is_domoticz_db_available: Fashion: %s , Major: %s, Minor: %s"
+        % (self.VersionNewFashion, self.DomoticzMajor, self.DomoticzMinor)
+    )
+
+    if not self.VersionNewFashion:
+        Domoticz.Log("is_domoticz_db_available: %s due to Fashion" % False)
+        return False
+
+    if self.DomoticzMajor < 2021:
+        Domoticz.Log("is_domoticz_db_available: %s due to Major" % False)
+        return False
+
+    if self.DomoticzMajor == 2021 and self.DomoticzMinor < 1:
+        Domoticz.Log("is_domoticz_db_available: %s due to Minor" % False)
+        return False
+
+    Domoticz.Log("is_domoticz_db_available: %s" % True)
+    return True
